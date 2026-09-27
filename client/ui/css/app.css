@@ -606,7 +606,10 @@ html[data-theme="dark"] .list-item.active {
   align-self: flex-start;
   box-shadow: 0 4px 14px rgba(50, 30, 100, 0.06);
   animation: pop .18s ease;
+  /* 禁止被 flex 压缩，否则消息多时 overflow 会裁切文字 */
+  flex-shrink: 0;
   overflow: hidden;
+  min-height: min-content;
 }
 .bubble.mine {
   align-self: flex-end;
@@ -628,7 +631,13 @@ html[data-theme="dark"] .list-item.active {
   to { opacity: 1; transform: none; }
 }
 .bubble .sender { font-size: 11px; opacity: .75; margin-bottom: 4px; font-weight: 700; }
-.bubble .body { white-space: pre-wrap; word-break: break-word; line-height: 1.45; font-size: 14.5px; }
+.bubble .body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
+  font-size: 14.5px;
+}
 .bubble .meta {
   margin-top: 5px; font-size: 11px; opacity: .75;
   display: flex; gap: 8px; justify-content: flex-end; align-items: center;
