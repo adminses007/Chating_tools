@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat Admin</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3d8bfd;
+      --border: #2a3548;
+      --danger: #e35d6a;
+      --ok: #3dd68c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1b2a44, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      background: rgba(15,20,25,.7); backdrop-filter: blur(8px);
+      position: sticky; top: 0;
+    }
+    h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: .02em; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .login-card, .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 12px; margin: 16px 0 28px; }
+    .stat { background: #121a26; border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .stat .label { color: var(--muted); font-size: 12px; }
+    .stat .value { font-size: 22px; margin-top: 6px; font-weight: 600; }
+    input, select, button, textarea {
+      font: inherit; border-radius: 8px; border: 1px solid var(--border);
+      background: #121a26; color: var(--text); padding: 10px 12px;
+    }
+    button { background: var(--accent); border: none; cursor: pointer; font-weight: 600; }
+    button.secondary { background: #243147; }
+    button.danger { background: var(--danger); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tabs button { background: #243147; }
+    .tabs button.active { background: var(--accent); }
+    .hidden { display: none; }
+    .muted { color: var(--muted); }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background: var(--muted); }
+    .dot.on { background: var(--ok); }
+    #err { color: var(--danger); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Chat Server Admin</h1>
+    <div id="header-user" class="muted"></div>
+  </header>
+  <div class="wrap">
+    <div id="login-view" class="login-card">
+      <p class="muted">使用管理员账号登录（首个注册用户自动为 admin）</p>
+      <div class="row">
+        <input id="server" placeholder="Server URL" value="" style="min-width:280px" />
+      </div>
+      <div class="row">
+        <input id="username" placeholder="Username" />
+        <input id="password" type="password" placeholder="Password" />
+        <button id="btn-login">Login</button>
+      </div>
+      <div id="err"></div>
+    </div>
+
+    <div id="dash-view" class="hidden">
+      <div class="tabs">
+        <button class="active" data-tab="stats">Status</button>
+        <button data-tab="users">Users</button>
+        <button data-tab="groups">Groups</button>
+        <button data-tab="messages">Messages Meta</button>
+        <button data-tab="files">Files</button>
+        <button data-tab="logs">Login Logs</button>
+        <button class="secondary" id="btn-logout">Logout</button>
+      </div>
+      <div id="tab-stats" class="panel">
+        <div class="grid" id="stats-grid"></div>
+      </div>
+      <div id="tab-users" class="panel hidden">
+        <div class="row">
+          <input id="nu-user" placeholder="username" />
+          <input id="nu-pass" placeholder="password" type="password" />
+          <input id="nu-name" placeholder="display name" />
+          <select id="nu-role"><option value="user">user</option><option value="admin">admin</option></select>
+          <button id="btn-create-user">Create User</button>
+        </div>
+        <table><thead><tr><th>ID</th><th>User</th><th>Name</th><th>Role</th><th>Status</th><th>Online</th><th>Actions</th></tr></thead><tbody id="users-body"></tbody></table>
+      </div>
+      <div id="tab-groups" class="panel hidden">
+        <div class="row">
+          <input id="ng-name" placeholder="group name" />
+          <button id="btn-create-group">Create Group</button>
+        </div>
+        <table><thead><tr><th>ID</th><th>Title</th><th>Owner</th><th>Members</th><th>Updated</th></tr></thead><tbody id="groups-body"></tbody></table>
+      </div>
+      <div id="tab-messages" class="panel hidden">
+        <pre id="messages-meta" class="muted" style="white-space:pre-wrap"></pre>
+      </div>
+      <div id="tab-files" class="panel hidden">
+        <table><thead><tr><th>ID</th><th>Filename</th><th>Size</th><th>Sender</th><th>Created</th></tr></thead><tbody id="files-body"></tbody></table>
+      </div>
+      <div id="tab-logs" class="panel hidden">
+        <table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>IP</th></tr></thead><tbody id="logs-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+  <script>
+    const state = { token: localStorage.getItem("admin_token") || "", base: localStorage.getItem("admin_base") || location.origin };
+    document.getElementById("server").value = state.base;
+
+    function showErr(msg) { document.getElementById("err").textContent = msg || ""; }
+
+    async function api(path, opts = {}) {
+      const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+      if (state.token) headers.Authorization = "Bearer " + state.token;
+      const res = await fetch(state.base.replace(/\/$/, "") + path, { ...opts, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      return data;
+    }
+
+    function fmtBytes(n) {
+      if (n < 1024) return n + " B";
+      if (n < 1048576) return (n/1024).toFixed(1) + " KB";
+      if (n < 1073741824) return (n/1048576).toFixed(1) + " MB";
+      return (n/1073741824).toFixed(2) + " GB";
+    }
+
+    async function refreshStats() {
+      const s = await api("/api/admin/stats");
+      const items = [
+        ["Status", s.server_status],
+        ["CPU", s.cpu_percent + "%"],
+        ["RAM", s.ram.percent + "%"],
+        ["Disk", s.disk.percent + "%"],
+        ["Online", s.online_users],
+        ["Users", s.total_users],
+        ["Groups", s.groups],
+        ["Msg Today", s.messages_today],
+        ["Files Today", s.files_today],
+        ["DB Size", fmtBytes(s.database_size)],
+      ];
+      document.getElementById("stats-grid").innerHTML = items.map(([l,v]) =>
+        `<div class="stat"><div class="label">${l}</div><div class="value">${v}</div></div>`
+      ).join("");
+    }
+
+    async function refreshUsers() {
+      const users = await api("/api/admin/users");
+      document.getElementById("users-body").innerHTML = users.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${escapeHtml(u.username)}</td>
+          <td>${escapeHtml(u.display_name)}</td>
+          <td>${u.role}</td>
+          <td>${u.status}</td>
+          <td><span class="dot ${u.online?'on':''}"></span>${u.online?'yes':'no'}</td>
+          <td class="row">
+            <button class="secondary" onclick="toggleDisable(${u.id}, '${u.status}')">${u.status==='active'?'Disable':'Enable'}</button>
+            <button class="secondary" onclick="resetPwd(${u.id})">Reset PW</button>
+            <button class="danger" onclick="delUser(${u.id})">Delete</button>
+          </td>
+        </tr>`).join("");
+    }
+
+    async function refreshGroups() {
+      const groups = await api("/api/admin/groups");
+      document.getElementById("groups-body").innerHTML = groups.map(g => `
+        <tr><td>${g.id}</td><td>${escapeHtml(g.title||'')}</td><td>${g.owner_id||''}</td><td>${g.member_count||0}</td><td>${g.updated_at||''}</td></tr>
+      `).join("");
+    }
+
+    async function refreshMessages() {
+      const meta = await api("/api/admin/messages/meta");
+      document.getElementById("messages-meta").textContent = JSON.stringify(meta, null, 2);
+    }
+
+    async function refreshFiles() {
+      const files = await api("/api/admin/files");
+      document.getElementById("files-body").innerHTML = files.map(f => `
+        <tr><td>${f.id}</td><td>${escapeHtml(f.filename)}</td><td>${fmtBytes(f.size)}</td><td>${f.sender_id}</td><td>${f.created_at}</td></tr>
+      `).join("");
+    }
+
+    async function refreshLogs() {
+      const logs = await api("/api/admin/logs");
+      document.getElementById("logs-body").innerHTML = logs.map(l => `
+        <tr><td>${l.created_at}</td><td>${l.user_id||''}</td><td>${escapeHtml(l.action)}</td><td>${escapeHtml(l.detail||'')}</td><td>${l.ip||''}</td></tr>
+      `).join("");
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    window.toggleDisable = async (id, status) => {
+      await api(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ status: status === "active" ? "disabled" : "active" }) });
+      refreshUsers();
+    };
+    window.resetPwd = async (id) => {
+      const password = prompt("New password:");
+      if (!password) return;
+      await api(`/api/admin/users/${id}/reset-password`, { method: "POST", body: JSON.stringify({ password }) });
+      alert("Password reset");
+    };
+    window.delUser = async (id) => {
+      if (!confirm("Delete user " + id + "?")) return;
+      await api(`/api/admin/users/${id}`, { method: "DELETE" });
+      refreshUsers();
+    };
+
+    function showDash() {
+      document.getElementById("login-view").classList.add("hidden");
+      document.getElementById("dash-view").classList.remove("hidden");
+      refreshStats(); refreshUsers();
+    }
+
+    document.getElementById("btn-login").onclick = async () => {
+      try {
+        showErr("");
+        state.base = document.getElementById("server").value.trim().replace(/\/$/, "");
+        const body = {
+          username: document.getElementById("username").value.trim(),
+          password: document.getElementById("password").value,
+        };
+        const res = await fetch(state.base + "/api/auth/login", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Login failed");
+        if (data.user.role !== "admin") throw new Error("Not an admin account");
+        state.token = data.access_token;
+        localStorage.setItem("admin_token", state.token);
+        localStorage.setItem("admin_base", state.base);
+        document.getElementById("header-user").textContent = data.user.display_name + " (admin)";
+        showDash();
+      } catch (e) { showErr(e.message); }
+    };
+
+    document.getElementById("btn-logout").onclick = () => {
+      state.token = ""; localStorage.removeItem("admin_token");
+      location.reload();
+    };
+
+    document.getElementById("btn-create-user").onclick = async () => {
+      await api("/api/admin/users", {
+        method: "POST",
+        body: JSON.stringify({
+          username: document.getElementById("nu-user").value.trim(),
+          password: document.getElementById("nu-pass").value,
+          display_name: document.getElementById("nu-name").value.trim(),
+          role: document.getElementById("nu-role").value,
+        }),
+      });
+      refreshUsers();
+    };
+
+    document.getElementById("btn-create-group").onclick = async () => {
+      await api("/api/admin/groups", {
+        method: "POST",
+        body: JSON.stringify({ group_name: document.getElementById("ng-name").value.trim(), member_ids: [] }),
+      });
+      refreshGroups();
+    };
+
+    document.querySelectorAll(".tabs button[data-tab]").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".tabs button[data-tab]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["stats","users","groups","messages","files","logs"].forEach(t => {
+          document.getElementById("tab-" + t).classList.toggle("hidden", t !== btn.dataset.tab);
+        });
+        if (btn.dataset.tab === "stats") refreshStats();
+        if (btn.dataset.tab === "users") refreshUsers();
+        if (btn.dataset.tab === "groups") refreshGroups();
+        if (btn.dataset.tab === "messages") refreshMessages();
+        if (btn.dataset.tab === "files") refreshFiles();
+        if (btn.dataset.tab === "logs") refreshLogs();
+      };
+    });
+
+    if (state.token) {
+      api("/api/users/me").then(u => {
+        if (u.role !== "admin") throw new Error("not admin");
+        document.getElementById("header-user").textContent = u.display_name + " (admin)";
+        showDash();
+      }).catch(() => { state.token = ""; localStorage.removeItem("admin_token"); });
+    }
+  </script>
+</body>
+</html>

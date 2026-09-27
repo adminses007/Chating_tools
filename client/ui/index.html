@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LAN Chat</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Login -->
+    <section id="view-setup" class="view view-setup">
+      <div class="setup-shell">
+        <div class="lang-switch setup-lang" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" class="active">中文</button>
+          <button type="button" data-lang="my">မြန်မာ</button>
+        </div>
+        <div class="setup-hero">
+          <div class="logo-mark" aria-hidden="true">LC</div>
+          <h1 class="brand">LAN Chat</h1>
+          <p class="subtitle" data-i18n="subtitle">简单、快速、像身边人一样随时聊</p>
+        </div>
+        <div class="setup-card">
+          <div id="server-config-block">
+            <label data-i18n="serverAddress">服务器地址</label>
+            <input id="server-url" type="url" placeholder="http://192.168.1.100:8000" />
+            <div class="row">
+              <button id="btn-check" class="ghost" type="button" data-i18n="testConnection">测试连接</button>
+              <span id="setup-status" class="status-pill disconnected">—</span>
+            </div>
+            <p class="hint" data-i18n="mobileHint">手机浏览器打开：http://服务器IP:8000</p>
+          </div>
+          <div id="server-embedded-hint" class="hint embedded-hint hidden"></div>
+          <div class="tabs-mini">
+            <button type="button" class="active" data-auth="login" data-i18n="login">登录</button>
+            <button type="button" data-auth="register" data-i18n="register">注册</button>
+          </div>
+          <div id="auth-login">
+            <input id="login-user" data-i18n-placeholder="username" placeholder="用户名" autocomplete="username" />
+            <input id="login-pass" type="password" data-i18n-placeholder="password" placeholder="密码" autocomplete="current-password" />
+            <div class="remember-row">
+              <label class="check-label"><input id="remember-user" type="checkbox" /> <span data-i18n="rememberUser">记住用户名</span></label>
+              <label class="check-label"><input id="remember-pass" type="checkbox" /> <span data-i18n="rememberPass">记住密码</span></label>
+            </div>
+            <button id="btn-login" class="btn-primary" type="button" data-i18n="enterChat">进入聊天</button>
+          </div>
+          <div id="auth-register" class="hidden">
+            <input id="reg-user" data-i18n-placeholder="username" placeholder="用户名" />
+            <input id="reg-name" data-i18n-placeholder="displayName" placeholder="显示名称" />
+            <input id="reg-pass" type="password" data-i18n-placeholder="loginPassword" placeholder="登录密码（至少 6 位）" />
+            <input id="reg-invite" type="password" data-i18n-placeholder="inviteCode" placeholder="注册邀请码" autocomplete="off" />
+            <p class="hint" data-i18n="inviteHint">需要管理员提供的邀请码才能注册</p>
+            <button id="btn-register" class="btn-primary" type="button" data-i18n="createAccount">创建账号</button>
+          </div>
+          <p id="setup-error" class="error"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section id="view-chat" class="view view-chat hidden">
+      <div class="layout show-sidebar" id="main-layout">
+        <aside class="sidebar">
+          <div class="side-brand">
+            <div class="side-brand-top">
+              <div class="logo-mark sm">LC</div>
+              <div>
+                <div class="side-brand-name">LAN Chat</div>
+                <span id="conn-status" class="status-pill connecting">—</span>
+              </div>
+            </div>
+            <div class="side-actions">
+              <div class="lang-switch side-lang" role="group">
+                <button type="button" data-lang="zh" title="中文">中</button>
+                <button type="button" data-lang="my" title="မြန်မာ">မ</button>
+              </div>
+              <button id="btn-new-group" class="icon-btn" type="button" data-i18n-title="newGroup" title="新建群聊">＋</button>
+              <button id="btn-theme" class="icon-btn" type="button" data-i18n-title="theme" title="主题">◐</button>
+              <button id="btn-logout" class="icon-btn" type="button" data-i18n-title="logout" title="退出">⎋</button>
+            </div>
+          </div>
+          <div class="side-me">
+            <div id="me-avatar" class="avatar"></div>
+            <div class="side-me-text">
+              <div id="me-name" class="me-name">—</div>
+              <div class="me-sub" data-i18n="online">在线</div>
+            </div>
+          </div>
+          <div class="side-section" id="section-users">
+            <button type="button" class="side-title-btn" id="toggle-users" aria-expanded="true">
+              <span data-i18n="contacts">联系人</span>
+              <span class="chevron" aria-hidden="true">▾</span>
+            </button>
+            <div id="user-list" class="list collapse-body"></div>
+          </div>
+          <div class="side-section grow" id="section-convs">
+            <button type="button" class="side-title-btn" id="toggle-convs" aria-expanded="true">
+              <span data-i18n="recentChats">最近聊天</span>
+              <span class="chevron" aria-hidden="true">▾</span>
+            </button>
+            <div id="conv-list" class="list collapse-body"></div>
+          </div>
+        </aside>
+
+        <main class="chat">
+          <div id="chat-empty" class="chat-empty">
+            <div class="empty-orb">💬</div>
+            <h2 data-i18n="startChatTitle">开始一段对话</h2>
+            <p data-i18n="startChatDesc">从左侧选择联系人或打开最近聊天</p>
+            <button id="btn-toggle-sidebar" class="ghost mobile-only" type="button" data-i18n="openChatList">打开会话列表</button>
+          </div>
+          <div id="chat-active" class="hidden chat-active">
+            <div class="chat-header">
+              <div class="chat-header-main">
+                <button id="btn-back-list" class="icon-btn mobile-only" type="button" data-i18n-aria="back" aria-label="返回">←</button>
+                <div id="chat-peer-avatar" class="avatar"></div>
+                <div class="chat-header-text">
+                  <div id="chat-title" class="chat-title"></div>
+                  <div id="chat-sub" class="chat-sub"></div>
+                </div>
+              </div>
+              <div id="chat-actions" class="row"></div>
+            </div>
+            <div id="message-list" class="message-list"></div>
+            <div id="upload-progress" class="progress hidden"><div id="upload-bar"></div></div>
+            <div class="composer">
+              <input id="file-input" type="file" class="hidden" />
+              <button id="btn-attach" class="icon-btn attach" type="button" data-i18n-title="attach" title="发送图片/视频/文件">＋</button>
+              <div class="composer-field">
+                <input id="msg-input" type="text" data-i18n-placeholder="typeMessage" placeholder="输入消息…" autocomplete="off" />
+              </div>
+              <button id="btn-send" class="send-btn" type="button" data-i18n-title="send" data-i18n-aria="send" title="发送" aria-label="发送">➤</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="group-dialog">
+    <form method="dialog" id="group-form">
+      <h3 data-i18n="createGroup">新建群聊</h3>
+      <input id="group-name" data-i18n-placeholder="groupName" placeholder="群名称" required />
+      <div id="group-members" class="member-picks"></div>
+      <div class="row end">
+        <button value="cancel" class="ghost" data-i18n="cancel">取消</button>
+        <button id="btn-create-group" class="btn-primary" value="default" data-i18n="create">创建</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

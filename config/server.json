@@ -1,0 +1,23 @@
+{
+  "host": "0.0.0.0",
+  "port": 8000,
+  "database": "data/chat.db",
+  "file_storage": "data/files",
+  "max_file_size": 524288000,
+  "jwt_secret": "change-me-in-production-use-a-long-random-string",
+  "jwt_access_expire_minutes": 60,
+  "jwt_refresh_expire_days": 7,
+  "cors_origins": ["*"],
+  "rate_limit_per_minute": 120,
+  "register_invite_code": "abc888#",
+  "allow_all_extensions": true,
+  "denied_extensions": [".bat", ".cmd", ".com", ".scr", ".ps1", ".vbs", ".wsf", ".msi"],
+  "allowed_extensions": [
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic", ".svg",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".rtf",
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+    ".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".wmv", ".flv", ".mpeg", ".mpg",
+    ".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a",
+    ".apk", ".ipa", ".dmg", ".iso", ".json", ".xml", ".md", ".epub"
+  ]
+}

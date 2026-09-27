@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+
+# Build
+dist/
+build/
+
+# Uploads
+uploads/
+media/
+data/
+
+# Cache
+.cache/
+
+# Backup files
+*.bak
+*.restore_bak 
+*.exe
+
