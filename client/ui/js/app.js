@@ -210,22 +210,161 @@
     }
   }
 
+  function sameConversation(a, b) {
+    return Number(a) === Number(b);
+  }
+
+  function totalUnread() {
+    return state.conversations.reduce((sum, c) => sum + (Number(c.unread_count) || 0), 0);
+  }
+
+  function updateTitleBadge() {
+    const n = totalUnread();
+    document.title = n > 0 ? `(${n}) LAN Chat` : "LAN Chat";
+  }
+
+  function playNotifySound() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.3);
+      setTimeout(() => ctx.close().catch(() => {}), 400);
+    } catch {}
+  }
+
+  function showToast(title, body, conversationId) {
+    const host = $("toast-host");
+    if (!host) return;
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = `<span class="toast-dot"></span><div><div class="toast-title">${esc(title)}</div><div class="toast-body">${esc(body)}</div></div>`;
+    el.onclick = () => {
+      el.remove();
+      if (conversationId) {
+        openConversation(Number(conversationId)).catch(() => {});
+      }
+    };
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  function unreadForUser(userId) {
+    const uid = Number(userId);
+    const direct = state.conversations.find((c) => {
+      if (c.type !== "direct") return false;
+      return (c.members || []).some((m) => Number(m.id) === uid);
+    });
+    return Number(direct?.unread_count) || 0;
+  }
+
+  function updateSectionBadges() {
+    const total = totalUnread();
+    const convBadge = $("convs-unread-badge");
+    if (convBadge) {
+      if (total > 0) {
+        convBadge.textContent = total > 99 ? "99+" : String(total);
+        convBadge.classList.remove("hidden");
+      } else {
+        convBadge.classList.add("hidden");
+      }
+    }
+    const usersUnread = state.users.reduce((sum, u) => sum + unreadForUser(u.id), 0);
+    const userBadge = $("users-unread-badge");
+    if (userBadge) {
+      if (usersUnread > 0) {
+        userBadge.textContent = usersUnread > 99 ? "99+" : String(usersUnread);
+        userBadge.classList.remove("hidden");
+      } else {
+        userBadge.classList.add("hidden");
+      }
+    }
+  }
+
+  function previewText(msg) {
+    if (!msg) return "";
+    if (msg.message_type === "image") return t("image");
+    if (msg.message_type === "video") return t("video");
+    if (msg.message_type === "audio") return t("audio");
+    if (msg.message_type === "file") return t("file");
+    return String(msg.content || "").slice(0, 80);
+  }
+
+  function notifyNewMessage(msg) {
+    if (!msg || msg.sender_id === state.user?.id) return;
+    // 全局提示：右上角 Toast + 声音，不再强制展开「最近聊天」
+    playNotifySound();
+
+    const conv = state.conversations.find((c) => sameConversation(c.id, msg.conversation_id));
+    const name = msg.sender_name || conv?.title || t("newMessage");
+    const preview = previewText(msg);
+    showToast(t("newMessageFrom", { name }), preview || t("newMessage"), msg.conversation_id);
+
+    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+      try {
+        const n = new Notification(t("newMessageFrom", { name }), {
+          body: preview || t("newMessage"),
+          tag: `conv-${msg.conversation_id}`,
+        });
+        n.onclick = () => {
+          window.focus();
+          openConversation(Number(msg.conversation_id)).catch(() => {});
+          n.close();
+        };
+      } catch {}
+    }
+  }
+
   function handleWsEvent(evt) {
     const { type, payload } = evt;
     if (type === "pong") return;
 
     if (type === "message.ack" && payload.message) {
       upsertMessage(payload.message, true);
-      loadConversations();
+      loadConversations().then(() => {
+        updateTitleBadge();
+        renderUsers();
+        updateSectionBadges();
+      });
       return;
     }
 
     if (type === "message.new") {
+      const viewing = sameConversation(state.activeConversationId, payload.conversation_id);
       upsertMessage(payload, false);
-      if (state.activeConversationId === payload.conversation_id) {
-        markRead(payload.conversation_id, payload.id);
-      }
-      loadConversations();
+      (async () => {
+        if (viewing) {
+          // 先标记已读，再刷新列表，避免角标被旧未读数据写回来
+          await markRead(payload.conversation_id, payload.id);
+        } else {
+          notifyNewMessage(payload);
+          await loadConversations();
+          renderUsers();
+          updateSectionBadges();
+          updateTitleBadge();
+          const row = document.querySelector(`.list-item[data-cid="${payload.conversation_id}"]`);
+          if (row) {
+            row.classList.add("has-new");
+            setTimeout(() => row.classList.remove("has-new"), 2500);
+          }
+          const userRow = document.querySelector(`.list-item[data-user="${payload.sender_id}"]`);
+          if (userRow) {
+            userRow.classList.add("has-new");
+            setTimeout(() => userRow.classList.remove("has-new"), 2500);
+          }
+        }
+      })().catch((e) => console.warn(e));
       return;
     }
 
@@ -233,7 +372,7 @@
       const msg = state.messages.find((m) => m.id === payload.message_id);
       if (msg) {
         msg._status = payload.status;
-        if (state.activeConversationId === payload.conversation_id) renderMessages();
+        if (sameConversation(state.activeConversationId, payload.conversation_id)) renderMessages();
       }
       return;
     }
@@ -249,7 +388,7 @@
     }
 
     if (type === "sync.unread") {
-      loadConversations();
+      loadConversations().then(updateTitleBadge);
       return;
     }
 
@@ -259,20 +398,17 @@
   }
 
   function upsertMessage(msg, fromAck) {
-    if (msg.conversation_id !== state.activeConversationId && !fromAck) {
+    if (!sameConversation(msg.conversation_id, state.activeConversationId) && !fromAck) {
       return;
-    }
-    if (msg.conversation_id !== state.activeConversationId) {
-      // still refresh list via caller
     }
     const idx = state.messages.findIndex(
       (m) => m.id === msg.id || (msg.client_msg_id && m.client_msg_id === msg.client_msg_id)
     );
     if (idx >= 0) state.messages[idx] = { ...state.messages[idx], ...msg, _status: fromAck ? "sent" : msg._status };
-    else if (msg.conversation_id === state.activeConversationId) {
+    else if (sameConversation(msg.conversation_id, state.activeConversationId)) {
       state.messages.push({ ...msg, _status: fromAck ? "sent" : "delivered" });
     }
-    if (msg.conversation_id === state.activeConversationId) renderMessages(true);
+    if (sameConversation(msg.conversation_id, state.activeConversationId)) renderMessages(true);
   }
 
   async function loadUsers() {
@@ -280,8 +416,20 @@
     renderUsers();
   }
 
+  let _convLoadSeq = 0;
   async function loadConversations() {
-    state.conversations = await api("/api/conversations");
+    const seq = ++_convLoadSeq;
+    const data = await api("/api/conversations");
+    // 忽略过期的并发请求，避免旧未读数据把角标写回来
+    if (seq !== _convLoadSeq) return;
+    state.conversations = data;
+    // 正在查看的会话一律视为已读（防 markRead / 刷新竞态）
+    if (state.activeConversationId) {
+      const active = state.conversations.find((c) =>
+        sameConversation(c.id, state.activeConversationId)
+      );
+      if (active) active.unread_count = 0;
+    }
     renderConversations();
   }
 
@@ -339,16 +487,18 @@
 
   function renderUsers() {
     $("user-list").innerHTML = state.users
-      .map(
-        (u) => `
-      <div class="list-item" data-user="${u.id}">
+      .map((u) => {
+        const unread = unreadForUser(u.id);
+        return `
+      <div class="list-item ${unread ? "has-unread" : ""}" data-user="${u.id}">
         ${avatarHtml(u.display_name, { online: !!u.online, sm: true })}
         <div class="body">
           <div class="name"><span>${esc(u.display_name)}</span></div>
           <div class="meta">${u.online ? t("online") : "@" + esc(u.username)}</div>
         </div>
-      </div>`
-      )
+        ${unread ? `<span class="badge">${unread > 99 ? "99+" : unread}</span>` : ""}
+      </div>`;
+      })
       .join("");
     $("user-list").querySelectorAll(".list-item").forEach((el) => {
       el.onclick = () => {
@@ -358,6 +508,7 @@
         });
       };
     });
+    updateSectionBadges();
   }
 
   function renderConversations() {
@@ -377,14 +528,16 @@
                     : `[${c.last_message.message_type}]`
           : t("noMessages");
         const timeLabel = shortTime(c.last_message?.created_at || c.updated_at);
+        const active = sameConversation(c.id, state.activeConversationId);
+        const unread = Number(c.unread_count) || 0;
         return `
-        <div class="list-item ${c.id === state.activeConversationId ? "active" : ""}" data-cid="${c.id}">
+        <div class="list-item ${active ? "active" : ""} ${unread ? "has-unread" : ""}" data-cid="${c.id}">
           ${avatarHtml(c.title || "Chat", { sm: true })}
           <div class="body">
             <div class="name"><span>${esc(c.title || "Chat")}</span><span class="time">${esc(timeLabel)}</span></div>
             <div class="meta">${esc(preview)}</div>
           </div>
-          ${c.unread_count ? `<span class="badge">${c.unread_count}</span>` : ""}
+          ${unread ? `<span class="badge">${unread > 99 ? "99+" : unread}</span>` : ""}
         </div>`;
       })
       .join("");
@@ -396,6 +549,8 @@
         });
       };
     });
+    updateTitleBadge();
+    updateSectionBadges();
   }
 
   async function openDirect(userId) {
@@ -419,30 +574,6 @@
       alert(e.message || String(e));
       $("chat-active").classList.add("hidden");
       $("chat-empty").classList.remove("hidden");
-    }
-  }
-
-  async function openConversation(cid) {
-    state.activeConversationId = Number(cid);
-    $("chat-empty").classList.add("hidden");
-    $("chat-active").classList.remove("hidden");
-    showChatPane();
-    renderConversations();
-    updateChatHeader();
-    try {
-      state.messages = await api(`/api/conversations/${state.activeConversationId}/messages?limit=80`);
-      state.messages.forEach((m) => {
-        if (m.sender_id === state.user.id) {
-          m._status = m.read_at ? "read" : m.delivered_at ? "delivered" : "sent";
-        }
-      });
-      renderMessages(true);
-      if (state.messages.length) {
-        markRead(state.activeConversationId, state.messages[state.messages.length - 1].id);
-      }
-    } catch (e) {
-      console.error(e);
-      $("message-list").innerHTML = `<div class="bubble system">${esc(e.message || String(e))}</div>`;
     }
   }
 
@@ -670,21 +801,86 @@
     );
   }
 
+  function clearLocalUnread(conversationId) {
+    const cid = Number(conversationId);
+    let changed = false;
+    state.conversations.forEach((c) => {
+      if (Number(c.id) === cid && Number(c.unread_count) > 0) {
+        c.unread_count = 0;
+        changed = true;
+      }
+    });
+    if (changed) {
+      renderConversations();
+      renderUsers();
+    } else {
+      updateTitleBadge();
+      updateSectionBadges();
+    }
+  }
+
   async function markRead(conversationId, lastId) {
+    if (!conversationId || !lastId) return;
+    // 先本地清掉角标，避免已读接口返回前仍显示未读
+    clearLocalUnread(conversationId);
     try {
       await api(`/api/conversations/${conversationId}/read`, {
         method: "POST",
-        body: JSON.stringify({ last_read_message_id: lastId }),
+        body: JSON.stringify({ last_read_message_id: Number(lastId) }),
       });
       if (state.ws && state.ws.readyState === WebSocket.OPEN) {
         state.ws.send(
           JSON.stringify({
             type: "message.read",
-            payload: { conversation_id: conversationId, last_read_message_id: lastId },
+            payload: {
+              conversation_id: Number(conversationId),
+              last_read_message_id: Number(lastId),
+            },
           })
         );
       }
-    } catch {}
+      // 再拉一次服务端状态，确保角标与服务器一致
+      await loadConversations();
+      renderUsers();
+      updateSectionBadges();
+      updateTitleBadge();
+    } catch (e) {
+      console.warn("markRead failed", e);
+    }
+  }
+
+  async function openConversation(cid) {
+    state.activeConversationId = Number(cid);
+    $("chat-empty").classList.add("hidden");
+    $("chat-active").classList.remove("hidden");
+    showChatPane();
+    // 一点击就先去掉本地未读，避免角标残留
+    clearLocalUnread(state.activeConversationId);
+    updateChatHeader();
+    try {
+      state.messages = await api(`/api/conversations/${state.activeConversationId}/messages?limit=80`);
+      state.messages.forEach((m) => {
+        if (m.sender_id === state.user.id) {
+          m._status = m.read_at ? "read" : m.delivered_at ? "delivered" : "sent";
+        }
+      });
+      renderMessages(true);
+      const lastId =
+        state.messages.length > 0
+          ? state.messages[state.messages.length - 1].id
+          : currentConversation()?.last_message?.id;
+      if (lastId) {
+        await markRead(state.activeConversationId, lastId);
+      } else {
+        await loadConversations();
+        renderUsers();
+        updateSectionBadges();
+        updateTitleBadge();
+      }
+    } catch (e) {
+      console.error(e);
+      $("message-list").innerHTML = `<div class="bubble system">${esc(e.message || String(e))}</div>`;
+    }
   }
 
   async function uploadFile(file) {
@@ -751,6 +947,9 @@
     setMeChrome();
     showView("chat");
     connectWs();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
   }
 
   function refreshSectionGrow() {

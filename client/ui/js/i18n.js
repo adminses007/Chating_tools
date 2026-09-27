@@ -58,6 +58,9 @@ window.I18N = (function () {
       uploadNetwork: "上传失败（网络错误）",
       fileTooLarge: "文件过大（{size}）。服务器默认上限约 500MB。",
       openList: "打开会话列表",
+      newMessage: "新消息",
+      newMessageFrom: "{name} 发来新消息",
+      newMessageBody: "{preview}",
     },
     my: {
       langName: "မြန်မာ",
@@ -114,6 +117,9 @@ window.I18N = (function () {
       uploadNetwork: "တင်သွင်းမှု မအောင်မြင် (ကွန်ရက် အမှား)",
       fileTooLarge: "ဖိုင်ကြီးလွန်းသည် ({size})။ ဆာဗာ ကန့်သတ်ချက် ၅၀၀MB ခန့်။",
       openList: "စကားပြောစာရင်း ဖွင့်ရန်",
+      newMessage: "မက်ဆေ့ချ်အသစ်",
+      newMessageFrom: "{name} ထံမှ မက်ဆေ့ချ်အသစ်",
+      newMessageBody: "{preview}",
     },
   };
 

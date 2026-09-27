@@ -19,6 +19,10 @@
 - [x] Phase 9：安全加固（哈希 / JWT / 限流 / 路径与类型校验）
 - [x] Phase 10：Windows 打包脚本（PyInstaller）
 
+## 用户说明（英文）
+
+注册 / 登录 / 使用步骤见 **[USER_GUIDE.md](USER_GUIDE.md)**。
+
 ## 快速开始
 
 ```bash

@@ -57,6 +57,8 @@
       </div>
     </section>
 
+    <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
     <!-- Chat -->
     <section id="view-chat" class="view view-chat hidden">
       <div class="layout show-sidebar" id="main-layout">
@@ -88,14 +90,14 @@
           </div>
           <div class="side-section" id="section-users">
             <button type="button" class="side-title-btn" id="toggle-users" aria-expanded="true">
-              <span data-i18n="contacts">联系人</span>
+              <span class="side-title-left"><span data-i18n="contacts">联系人</span><span id="users-unread-badge" class="section-badge hidden">0</span></span>
               <span class="chevron" aria-hidden="true">▾</span>
             </button>
             <div id="user-list" class="list collapse-body"></div>
           </div>
           <div class="side-section grow" id="section-convs">
             <button type="button" class="side-title-btn" id="toggle-convs" aria-expanded="true">
-              <span data-i18n="recentChats">最近聊天</span>
+              <span class="side-title-left"><span data-i18n="recentChats">最近聊天</span><span id="convs-unread-badge" class="section-badge hidden">0</span></span>
               <span class="chevron" aria-hidden="true">▾</span>
             </button>
             <div id="conv-list" class="list collapse-body"></div>

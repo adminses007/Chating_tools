@@ -420,12 +420,112 @@ html[data-theme="dark"] .list-item.active {
   margin-top: 2px;
 }
 .list-item .time { font-size: 11px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+.toast-host {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  right: auto;
+  bottom: auto;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 24px));
+  width: min(420px, calc(100vw - 24px));
+}
+.side-title-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.section-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--viber);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(70, 45, 140, 0.22);
+  cursor: pointer;
+  animation: toast-in .22s ease;
+}
+.toast:hover { border-color: var(--viber); }
+.toast-title { font-weight: 800; font-size: 13px; color: var(--viber-deep); }
+.toast-body {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.toast-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--viber);
+  margin-top: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px var(--viber-glow);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+.list-item.has-unread .name span:first-child {
+  color: var(--viber-deep);
+  font-weight: 800;
+}
+.list-item.has-new {
+  animation: pulse-new 1.2s ease 2;
+  background: color-mix(in srgb, var(--viber) 14%, transparent);
+}
+@keyframes pulse-new {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: inset 0 0 0 1px var(--viber); }
+}
 .badge {
   min-width: 20px; height: 20px; padding: 0 6px;
   border-radius: 999px;
   background: var(--viber);
   color: #fff; font-size: 11px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 0 rgba(115, 96, 242, 0.55);
+  animation: badge-pop .35s ease;
+}
+@keyframes badge-pop {
+  from { transform: scale(.6); }
+  to { transform: scale(1); }
+}
+
+@media (max-width: 800px) {
+  .toast-host {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    max-width: none;
+    width: auto;
+  }
 }
 
 .chat {
