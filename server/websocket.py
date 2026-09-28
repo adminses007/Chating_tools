@@ -64,6 +64,16 @@ class ConnectionManager:
             await self.disconnect(user_id, ws)
         return delivered
 
+    async def force_disconnect(self, user_id: int) -> None:
+        conns = list(self._connections.get(user_id, set()))
+        for ws in conns:
+            try:
+                await ws.close(code=4403)
+            except Exception:
+                pass
+            await self.disconnect(user_id, ws)
+        self._connections.pop(user_id, None)
+
     async def broadcast_presence(self, user_id: int, online: bool) -> None:
         event = {
             "type": "presence.update",

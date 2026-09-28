@@ -77,3 +77,77 @@ def write_log(user_id: int | None, action: str, detail: str | None = None, ip: s
         "INSERT INTO logs (user_id, action, detail, ip, created_at) VALUES (?, ?, ?, ?, ?)",
         (user_id, action, detail, ip, utcnow_iso()),
     )
+
+
+def ensure_default_admin() -> dict[str, Any] | None:
+    """Ensure configured default admin account exists with the configured password."""
+    from server.config import get_config
+
+    cfg = get_config()
+    username = str(cfg.get("default_admin_username") or "admin").strip()
+    password = str(cfg.get("default_admin_password") or "abc888#")
+    if not username or not password:
+        return None
+
+    existing = get_user_by_username(username)
+    now = utcnow_iso()
+    if existing:
+        execute(
+            """
+            UPDATE users
+            SET password_hash = ?, role = 'admin', status = 'active', updated_at = ?
+            WHERE id = ?
+            """,
+            (hash_password(password), now, int(existing["id"])),
+        )
+        return row_to_dict(fetchone("SELECT * FROM users WHERE id = ?", (int(existing["id"]),)))
+
+    user_id = execute(
+        """
+        INSERT INTO users (username, password_hash, display_name, status, role, created_at, updated_at)
+        VALUES (?, ?, ?, 'active', 'admin', ?, ?)
+        """,
+        (username, hash_password(password), "Admin", now, now),
+    )
+    return row_to_dict(fetchone("SELECT * FROM users WHERE id = ?", (user_id,)))
+
+
+def delete_user(user_id: int, actor_id: int | None = None) -> None:
+    """Permanently delete a user account and related auth/session data."""
+    row = fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
+    user = row_to_dict(row)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if actor_id is not None and user_id == int(actor_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete yourself")
+
+    if user.get("role") == "admin":
+        admins = fetchone("SELECT COUNT(*) AS c FROM users WHERE role = 'admin' AND status = 'active'")
+        if admins and int(admins["c"]) <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete the last admin account",
+            )
+
+    # Revoke sessions first
+    execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+    execute("DELETE FROM message_delivery WHERE user_id = ?", (user_id,))
+    execute("DELETE FROM conversation_members WHERE user_id = ?", (user_id,))
+    # Keep messages/files for history; FK sets sender_id NULL / cascades where defined
+    execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    # Clean empty direct conversations left without members
+    orphan_direct = fetchall(
+        """
+        SELECT c.id FROM conversations c
+        WHERE c.type = 'direct'
+          AND NOT EXISTS (
+            SELECT 1 FROM conversation_members cm
+            WHERE cm.conversation_id = c.id AND cm.left_at IS NULL
+          )
+        """
+    )
+    for r in orphan_direct:
+        execute("DELETE FROM conversations WHERE id = ?", (int(r["id"]),))
+

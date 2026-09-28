@@ -44,8 +44,10 @@ python -m client.main
 Health：`GET /health`  
 Admin：`http://127.0.0.1:8000/admin`
 
-**首个注册用户自动成为 admin。**  
-自助注册必须填写邀请码（默认见 `config/server.json` → `register_invite_code`）。
+**默认管理员：** `admin` / `abc888#`（见 `config/server.json` → `default_admin_*`，启动时自动创建或同步密码）。  
+**首个注册用户也会成为 admin。**  
+自助注册必须填写邀请码（默认见 `config/server.json` → `register_invite_code`）。  
+Admin 后台 `/admin` 的 Users 页可 **删除账号**。
 
 ### 手机通过 IP 使用
 

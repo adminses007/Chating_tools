@@ -66,13 +66,13 @@
   </header>
   <div class="wrap">
     <div id="login-view" class="login-card">
-      <p class="muted">使用管理员账号登录（首个注册用户自动为 admin）</p>
+      <p class="muted">使用管理员账号登录。默认账号：<b>admin</b> / 密码：<b>abc888#</b></p>
       <div class="row">
         <input id="server" placeholder="Server URL" value="" style="min-width:280px" />
       </div>
       <div class="row">
-        <input id="username" placeholder="Username" />
-        <input id="password" type="password" placeholder="Password" />
+        <input id="username" placeholder="Username" value="admin" />
+        <input id="password" type="password" placeholder="Password" value="abc888#" />
         <button id="btn-login">Login</button>
       </div>
       <div id="err"></div>
@@ -219,9 +219,13 @@
       alert("Password reset");
     };
     window.delUser = async (id) => {
-      if (!confirm("Delete user " + id + "?")) return;
-      await api(`/api/admin/users/${id}`, { method: "DELETE" });
-      refreshUsers();
+      if (!confirm("Delete user " + id + "? This cannot be undone.")) return;
+      try {
+        await api(`/api/admin/users/${id}`, { method: "DELETE" });
+        await refreshUsers();
+      } catch (e) {
+        alert(e.message || String(e));
+      }
     };
 
     function showDash() {

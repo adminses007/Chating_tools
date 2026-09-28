@@ -52,6 +52,9 @@ def _local_ipv4_addresses() -> list[str]:
 
 
 def _print_access_urls(port: int) -> None:
+    cfg = get_config()
+    admin_user = cfg.get("default_admin_username", "admin")
+    admin_pass = cfg.get("default_admin_password", "abc888#")
     lines = [
         "",
         "=" * 56,
@@ -67,6 +70,7 @@ def _print_access_urls(port: int) -> None:
     else:
         lines.append("  LAN IP:  (not detected — run: ipconfig)")
         lines.append(f"  Admin:   http://127.0.0.1:{port}/admin")
+    lines.append(f"  Admin login: {admin_user} / {admin_pass}")
     lines.extend(["=" * 56, ""])
     banner = "\n".join(lines)
     print(banner, flush=True)
@@ -85,6 +89,7 @@ from server.routers import files as files_router
 from server.routers import groups as groups_router
 from server.routers import health as health_router
 from server.routers import users as users_router
+from server.user_service import ensure_default_admin
 from server.websocket import router as ws_router
 
 logging.basicConfig(
@@ -101,9 +106,16 @@ async def lifespan(app: FastAPI):
     init_db()
     Path(cfg["file_storage"]).mkdir(parents=True, exist_ok=True)
     (PROJECT_ROOT / "logs").mkdir(parents=True, exist_ok=True)
+    admin = ensure_default_admin()
     logger.info("Database ready: %s", cfg["database"])
     logger.info("File storage: %s", cfg["file_storage"])
     logger.info("Bind: %s:%s", cfg["host"], cfg["port"])
+    if admin:
+        logger.info(
+            "Default admin: username=%s password=%s",
+            cfg.get("default_admin_username", "admin"),
+            cfg.get("default_admin_password", "abc888#"),
+        )
     _print_access_urls(int(cfg["port"]))
     yield
     logger.info("Server shutting down")

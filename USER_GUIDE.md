@@ -84,8 +84,10 @@ On a shared computer, do not enable “Remember password”.
 ## Admin (operators only)
 
 - Admin dashboard: `http://SERVER_IP:8000/admin`
-- Log in with an **admin** account (first registered user is admin by default).
-- Admins can see system status; private message content is not shown by default.
+- Default login: username **`admin`**, password **`abc888#`**
+- In **Users** tab: create / disable / reset password / **Delete** accounts
+- You cannot delete your own account or the last remaining admin
+- Admins can see system status; private message content is not shown by default
 
 ---
 

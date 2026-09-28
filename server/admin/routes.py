@@ -15,7 +15,7 @@ from server.config import get_config
 from server.database import execute, fetchall, fetchone, row_to_dict
 from server.group_service import create_group, list_groups_admin
 from server.models import public_user
-from server.user_service import create_user, write_log
+from server.user_service import create_user, delete_user, write_log
 from server.websocket import manager
 from shared.schemas import (
     AdminCreateUserRequest,
@@ -136,13 +136,10 @@ def admin_reset_password(user_id: int, body: AdminResetPasswordRequest, admin: d
 
 
 @router.delete("/api/admin/users/{user_id}")
-def admin_delete_user(user_id: int, admin: dict = Depends(require_admin)) -> dict:
-    if user_id == int(admin["id"]):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete yourself")
-    row = fetchone("SELECT id FROM users WHERE id = ?", (user_id,))
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    execute("DELETE FROM users WHERE id = ?", (user_id,))
+async def admin_delete_user(user_id: int, admin: dict = Depends(require_admin)) -> dict:
+    delete_user(user_id, actor_id=int(admin["id"]))
+    await manager.force_disconnect(user_id)
+    await manager.broadcast_presence(user_id, False)
     write_log(int(admin["id"]), "admin_delete_user", detail=str(user_id))
     return {"ok": True}
 

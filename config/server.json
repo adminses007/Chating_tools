@@ -10,6 +10,8 @@
   "cors_origins": ["*"],
   "rate_limit_per_minute": 120,
   "register_invite_code": "abc888#",
+  "default_admin_username": "admin",
+  "default_admin_password": "abc888#",
   "allow_all_extensions": true,
   "denied_extensions": [".bat", ".cmd", ".com", ".scr", ".ps1", ".vbs", ".wsf", ".msi"],
   "allowed_extensions": [
