@@ -83,11 +83,75 @@ On a shared computer, do not enable “Remember password”.
 
 ## Admin (operators only)
 
-- Admin dashboard: `http://SERVER_IP:8000/admin`
-- Default login: username **`admin`**, password **`abc888#`**
-- In **Users** tab: create / disable / reset password / **Delete** accounts
-- You cannot delete your own account or the last remaining admin
-- Admins can see system status; private message content is not shown by default
+Admin dashboard is for server operators — **not** the normal chat screen.
+
+### Open Admin
+
+1. Make sure the **chat server is running**.
+2. In a browser open: `http://SERVER_IP:8000/admin`  
+   Examples: `http://127.0.0.1:8000/admin` or `http://192.168.1.100:8000/admin`
+3. Log in with:
+
+   | Field | Default value |
+   |---|---|
+   | **Username** | **`admin`** |
+   | **Password** | **`abc888#`** |
+
+   (Configured in `config/server.json` → `default_admin_username` / `default_admin_password`. Server syncs this account on startup.)
+
+4. After login you see the admin tabs.
+
+### Admin tabs
+
+| Tab | What it does |
+|---|---|
+| **Status** | Server health: CPU, RAM, disk, online users, message/file counts today, DB size |
+| **Users** | Create users, disable/enable, reset password, **delete accounts** |
+| **Groups** | List groups; create a group |
+| **Messages Meta** | Message metadata only (type, time, length) — **no private text content** |
+| **Files** | Uploaded file list (name, size, sender, time) |
+| **Login Logs** | Recent login / admin action logs |
+
+### Manage users (Users tab)
+
+**Create a user**
+
+1. Fill: username, password, display name, role (`user` or `admin`).
+2. Click **Create User**.
+
+**Disable / enable**
+
+- Click **Disable** to block login (user cannot chat).
+- Click **Enable** to restore access.
+
+**Reset password**
+
+1. Click **Reset PW**.
+2. Enter the new password in the prompt.
+3. Tell the user the new password.
+
+**Delete an account**
+
+1. Click **Delete** on that user row.
+2. Confirm in the dialog.
+3. The account is removed; if they were online, they are disconnected.
+
+Rules:
+
+- You **cannot delete yourself**.
+- You **cannot delete the last remaining admin**.
+- Deleted users disappear from Contacts for others after refresh.
+
+### Logout from Admin
+
+Click **Logout** in the tab bar.
+
+### Notes
+
+- Use Admin only on a trusted PC / network.
+- Normal chat users should use `http://SERVER_IP:8000/` (not `/admin`).
+- Invite code for public registration is still **`abc888#`** (separate from admin password, same default value).
+- Change defaults in `config/server.json` if needed, then restart the server.
 
 ---
 
@@ -97,6 +161,8 @@ On a shared computer, do not enable “Remember password”.
 |---|---|
 | Register | Server online + invite code **`abc888#`** + username + display name + password (≥6) |
 | Login | Server online + username + password |
+| Admin login | Browser → `http://SERVER_IP:8000/admin` + **`admin`** / **`abc888#`** |
+| Delete user | Admin → **Users** → **Delete** |
 | Phone use | Same LAN (or VPS URL) + browser → `http://SERVER_IP:8000` |
 | Firewall | Server PC allows inbound TCP **8000** |
 
@@ -106,4 +172,5 @@ On a shared computer, do not enable “Remember password”.
 
 - Health check: `GET http://SERVER_IP:8000/health`
 - Default invite code: **`abc888#`** (confirm with admin if changed). Ask admin for the server IP/URL.
+- Default admin login: **`admin`** / **`abc888#`** → `/admin`
 - See also: [README.md](README.md) (setup) · [PACKAGING.md](PACKAGING.md) (Windows build)
